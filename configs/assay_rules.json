@@ -1,0 +1,13 @@
+{
+  "plate_format": 96,
+  "positive_control_columns": [1],
+  "negative_control_columns": [12],
+  "min_z_factor": 0.5,
+  "min_signal_to_background": 2.0,
+  "outlier_zscore_threshold": 3.0,
+  "pass_criteria": {
+    "z_factor": 0.5,
+    "signal_to_background": 2.0,
+    "max_missing_wells": 0
+  }
+}

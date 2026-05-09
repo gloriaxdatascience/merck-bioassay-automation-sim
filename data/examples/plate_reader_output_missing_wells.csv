@@ -1,0 +1,17 @@
+well_id,row,column,well_type,compound_id,concentration_um,signal_rfu
+A01,A,1,positive_control,CTRL_POS,0,27834.5
+A02,A,2,positive_control,CTRL_POS,0,28102.3
+B01,B,1,positive_control,CTRL_POS,0,27654.8
+B02,B,2,positive_control,CTRL_POS,0,28445.1
+A12,A,12,negative_control,CTRL_NEG,0,998.4
+B12,B,12,negative_control,CTRL_NEG,0,1034.7
+C12,C,12,negative_control,CTRL_NEG,0,987.2
+D12,D,12,negative_control,CTRL_NEG,0,1012.5
+A03,A,3,compound,CPD_001,10,14233.1
+A04,A,4,compound,CPD_002,10,18901.4
+A05,A,5,compound,CPD_003,10,8234.7
+A06,A,6,compound,CPD_004,10,22103.5
+A07,A,7,compound,CPD_005,10,11456.2
+A08,A,8,compound,CPD_006,10,15677.3
+A09,A,9,compound,CPD_007,10,9823.4
+A10,A,10,compound,CPD_008,10,13204.8

@@ -1,0 +1,10 @@
+{
+  "max_retries": 2,
+  "retry_delay_seconds": 5,
+  "step_timeout_seconds": 120,
+  "workflow_steps": [
+    "liquid_handler",
+    "plate_reader",
+    "stacker"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "job_id": "JOB_001",
+  "plate_id": "PLT_001",
+  "created_by": "scientist_01",
+  "assay_name": "Kinase_Inhibition_Screen",
+  "plate_map_file": "data/input/plate_map_001.csv",
+  "steps": [
+    {
+      "step": 1,
+      "device": "PR_01",
+      "method": "HTRF_Assay",
+      "expected_duration_seconds": 30
+    },
+    {
+      "step": 2,
+      "device": "ST_01",
+      "action": "store",
+      "expected_duration_seconds": 5
+    }
+  ]
+}
