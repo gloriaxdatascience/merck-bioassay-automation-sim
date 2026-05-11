@@ -16,7 +16,7 @@ class MockPlateReader:
     """
     Simulates a PerkinElmer EnVision fluorescence plate reader.
 
-    In a real integration you would replace the internals of each method
+    In a real integration, replace the internals of each method
     with calls to the vendor's REST API or SDK. The method signatures
     stay identical — that's the point of the wrapper pattern.
     The scheduler never needs to know what's underneath.

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-# These are your data contracts.
+# These are the data contracts.
 # Every function passes these objects around — not raw dicts.
 # This catches bugs early: if a field is missing or the wrong type,
 # Pydantic raises an error immediately rather than silently breaking downstream.

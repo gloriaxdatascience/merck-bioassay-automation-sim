@@ -7,7 +7,7 @@ from rich.logging import RichHandler
 LOG_DIR = Path("data/logs")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Rich gives you coloured, readable terminal output.
+# Rich gives coloured, readable terminal output.
 # In a real lab, this would ship to a central log aggregator.
 logging.basicConfig(
     level=logging.INFO,
