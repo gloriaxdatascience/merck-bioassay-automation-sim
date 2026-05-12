@@ -79,8 +79,20 @@ merck-bioassay-automation-sim/
 │   │   ├── plate_map_001.csv         # 96-well layout: well type, compound, conc.
 │   │   └── scheduler_job_001.json    # job definition: steps, devices, methods
 │   ├── raw/                          # instrument output (generated on run)
+│   │   ├── plate_reader_output_PLT_001.csv
+│   │   └── plate_reader_output_PLT_TEST.csv
 │   ├── processed/                    # QC reports, normalized CSV, Genedata export
+│   │   ├── control_separation_PLT_001.png
+│   │   └── genedata_import_PLT_001.csv
+│   │   ├── inhibition_histogram_PLT_001.png
+│   │   └── normalized_results_PLT_001.csv
+│   │   ├── plate_heatmap_PLT_001.png
+│   │   └── qc_report_PLT_001.json
 │   ├── logs/                         # run_log.jsonl + per-event JSON files
+│   │   ├── event_JOB_001_plate_stored.json
+│   │   └── event_JOB_001_qc_complete.json
+│   │   ├── event_JOB_001_read_complete.json
+│   │   └── run_log.jsonl
 │   └── examples/
 │       ├── plate_reader_output_failed_controls.csv   # bad assay window demo
 │       └── plate_reader_output_missing_wells.csv     # incomplete plate demo
@@ -96,9 +108,15 @@ merck-bioassay-automation-sim/
 ├── tests/
 │   ├── test_qc.py        # QC formula correctness
 │   └── test_device_api.py
+│   └── test_pipeline.py
 ├── notebooks/
 │   └── explore_qc.ipynb  # plate heatmap + percent inhibition histogram
+├── images/
+│   └── control_separation_PLT_001.png
+│   ├── inhibition_histogram_PLT_001.png
+│   ├── plate_heatmap_PLT_001.png
 └── requirements.txt
+└── README.md
 ```
 
 ---
@@ -115,7 +133,9 @@ merck-bioassay-automation-sim/
 | `concentration_um` | Compound concentration in µM |
 
 Layout convention: columns 1–2 = positive controls (high signal), column 12 = negative
-controls (low signal), columns 3–11 = test compounds.
+controls (low signal), columns 3–11 = test compounds.  Control column positions are
+defined in `configs/assay_rules.json` and read directly by the QC module — the config
+is the single source of truth for plate layout.
 
 **`data/input/scheduler_job_001.json`** — defines the run sequence:
 
@@ -143,13 +163,16 @@ are alerted before acting on hits.
 Expected well count (96) is compared to actual wells in the raw file.
 Any shortfall is recorded in `missing_wells`.
 
-### 2. Control count check
-Minimum 2 positive and 2 negative control replicates are required.
-Fewer controls means QC metrics cannot be computed reliably.
+### 2. Identify controls by column number
+Control wells are identified using column positions defined in `configs/assay_rules.json`
+(`positive_control_columns: [1, 2]`, `negative_control_columns: [12]`), not by the
+well_type label in the plate map. The config is the single source of truth for plate
+layout, which matches how real labs manage assay definitions.
 
 ### 3. Control statistics
 Mean and standard deviation are computed separately for positive controls
-(high signal, max inhibition) and negative controls (low signal, no inhibition).
+(high signal, no inhibition, columns 1–2, 16 wells) and negative controls (low signal, max inhibition, column 12,
+8 wells).
 
 ### 4. Z'-factor
 The primary HTS assay quality metric, developed by Zhang et al. (1999).
@@ -181,10 +204,10 @@ Each compound well is normalized relative to plate controls:
 %inhibition = (mean_pos - signal) / (mean_pos - mean_neg) × 100
 ```
 
-100% = fully inhibited (compound abolishes signal like positive control).
-0% = no effect (compound looks like negative control).
-Values outside 0–100 are physically meaningful — they indicate stronger
-or weaker effects than the controls.
+Convention used in this assay:
+- Positive controls (high signal) → ~0% inhibition — full signal, no compound effect
+- Negative controls (low signal) → ~100% inhibition — signal abolished, maximum effect
+- Active hit compounds → high % inhibition, signal suppressed like negative control
 
 Outliers are flagged by Z-score (threshold: 3.0 SD from compound mean).
 
@@ -217,6 +240,7 @@ pip install -r requirements.txt
 python -m src.main
 
 # 3. Run tests
+# Note: set PYTHONPATH=. if running on Windows
 pytest tests/ -v
 
 # 4. Explore results in notebook
@@ -227,46 +251,59 @@ jupyter notebook notebooks/explore_qc.ipynb
 
 ## Example: success run
 
-Run 1 uses realistic control separation (pos ~28 000 RFU, neg ~1 000 RFU).
+Run 1 uses realistic control separation (pos ~28 000 RFU, neg ~1 000 RFU). The following values are taken directly from the run log (`data/logs/run_log.jsonl`):
 
 ```
-Z'-factor:            0.932      ✓ excellent (threshold: 0.5)
-Signal/background:   27.8x       ✓ excellent (threshold: 2.0x)
+Z'-factor:            0.92      ✓ excellent (threshold: 0.5)
+Signal/background:   26.85x       ✓ excellent (threshold: 2.0x)
+Positive control wells: 16       ✓ (columns 1–2, rows A–H)
+Negative control wells:  8       ✓ (column 12, rows A–H)
 Missing wells:        0          ✓
 Outlier wells:        0          ✓
 Plate verdict:        PASSED
 ```
 
-Percent inhibition for test compounds ranged from ~10% to ~90%, reflecting
-the normal distribution of compound activity in a kinase inhibition screen.
+Percent inhibition for test compounds ranged across a realistic distribution,
+reflecting variable compound activity in a kinase inhibition screen. Positive
+controls measured ~0% inhibition and negative controls ~100% inhibition,
+confirming the normalization anchors are correctly set.
 
 ---
 
 ## Example: failure run — broken controls
 
 Run 2 simulates an instrument or reagent failure where positive and negative
-controls produce overlapping signals (~5 000 RFU each).
+controls produce overlapping signals. The following values are from
+`data/processed/qc_report_PLT_001.json`, which is overwritten by the failure
+run since both runs share the same plate ID:
 
 ```
-pos_control_mean:  5 154 RFU
-neg_control_mean:  4 760 RFU     ← nearly identical
-Z'-factor:        -21.449        ✗ failed (threshold: 0.5)
-Signal/background:  1.08x        ✗ failed (threshold: 2.0x)
+pos_control_mean:  4 722.74 RFU  (16 wells, columns 1–2)
+pos_control_std:   2 315.24 RFU  ← very high — controls are noisy
+neg_control_mean:  3 958.10 RFU  ← nearly identical to positive controls
+neg_control_std:   1 697.36 RFU
+Z'-factor:        -14.743        ✗ failed (threshold: 0.5)
+Signal/background:  1.19x        ✗ failed (threshold: 2.0x)
 Plate verdict:      FAILED
 ```
 
-From the traceability log (`run_log.jsonl`):
+From the traceability log (`data/logs/run_log.jsonl`):
 ```json
 {
   "event": "qc_complete",
   "source": "qc_module",
   "plate_id": "PLT_001",
   "status": "failed",
+  "timestamp": "2026-05-12T14:02:34.917437+00:00",
   "details": {
-    "z_factor": -21.449,
+    "z_factor": -14.743,
+    "s2b": 1.19,
+    "pos_control_wells": 16,
+    "neg_control_wells": 8,
+    "passed": false,
     "failure_reasons": [
-      "Z'-factor -21.449 below threshold 0.5",
-      "Signal-to-background 1.08 below threshold 2.0"
+      "Z'-factor -14.743 below threshold 0.5",
+      "Signal-to-background 1.19 below threshold 2.0"
     ]
   }
 }
@@ -280,24 +317,37 @@ genuinely inactive). The traceability log preserves the full event chain
 ### Plate heatmap
 ![Plate heatmap](images/plate_heatmap_PLT_001.png)
 
-Colour scale: green = high signal, red = low signal. In a good run,
-columns 1–2 (positive controls) should be uniformly green and column 12
-(negative controls) uniformly red. Here the plate is a uniform mid-range
-yellow — controls have collapsed and are indistinguishable from compounds.
+Colour scale: green = high signal, red = low signal. In a good run, columns 1–2
+(positive controls) should be uniformly green and column 12 (negative controls)
+uniformly red, with a visible gradient across compound columns. Here the plate
+is a uniform mid-range yellow-green throughout — positive and negative controls
+are indistinguishable from each other and from test compounds. The absence of
+any column-specific colour pattern is the visual signature of a collapsed assay
+window. Z' = -14.743 confirms this numerically.
 
 ### Control separation
 ![Control separation](images/control_separation_PLT_001.png)
 
-The two control populations overlap almost completely.
-Z' = -21.449 confirms the assay window has failed.
+Positive control mean: 4 722.74 RFU (SD 2 315.24). Negative control mean:
+3 958.10 RFU (SD 1 697.36). The separation between means is only 764 RFU —
+less than one standard deviation of either population. The two distributions
+overlap completely, making it impossible to use them as normalization references.
+A scientist seeing this plot would immediately investigate whether the wrong
+reagent was dispensed, whether a liquid handler tip failed during control
+addition, or whether the assay incubation was interrupted.
 
 ### Compound activity distribution
 ![Inhibition histogram](images/inhibition_histogram_PLT_001.png)
 
-Percent inhibition values scatter wildly beyond -500% to +180%
-because the normalization denominator (pos_mean - neg_mean) is nearly
-zero. These values are meaningless — which is exactly why the plate
-is rejected before any scientist acts on them.
+Percent inhibition values for test compounds are scattered far outside the
+expected 0–100% range, with values running from approximately -210% to
+positive outliers. This happens because the normalization denominator
+(mean_pos − mean_neg = 764 RFU) is nearly zero relative to the signal noise,
+so small differences in raw signal produce enormous swings in calculated
+inhibition. These compound results are meaningless — which is precisely why
+the QC step exists and why this plate is rejected before any scientist acts
+on the data. In a real campaign, this plate would be re-run after identifying
+and resolving the root cause.
 
 ---
 
@@ -316,14 +366,27 @@ is rejected before any scientist acts on them.
 
 - **Device wrapper pattern**: abstracting vendor-specific instrument APIs behind a
   standard Python interface (`start_run` / `get_status` / `fetch_results`) lets the
-  scheduler remain agnostic to how each instrument actually communicates
+  scheduler remain agnostic to how each instrument actually communicates — swapping
+  a real EnVision reader in for the mock requires changing only the internals of one
+  class, not the scheduler or pipeline
+- **Config as single source of truth**: control column positions belong in
+  `assay_rules.json`, not hardcoded in QC logic. When I initially let the QC code
+  rely on `well_type` labels from the plate map rather than column definitions from
+  the config, the two fell out of sync silently. Making the config authoritative
+  and the code read from it eliminates that class of bug
 - **Traceability-first design**: logging every event as structured JSON before
-  worrying about business logic made debugging immediate and audit trails automatic
-- **Z'-factor in practice**: a Z' of -21 does not mean the data is slightly bad —
-  it means the assay window has completely collapsed and no compound result on that
-  plate can be trusted
-- **Pydantic for lab data**: defining data contracts with Pydantic catches missing
-  fields and type errors at the boundary between systems, not silently downstream
+  worrying about business logic made debugging immediate and audit trails automatic.
+  The run log is the first place to look when something fails — it shows exactly
+  which step emitted a failure and what the values were at that moment
+- **Z'-factor in practice**: a Z' of -14.7 does not mean the data is slightly
+  unreliable — it means the assay window has completely collapsed and no compound
+  result on that plate can be trusted. The high standard deviations (2 315 RFU on
+  positive controls) tell the story: the controls themselves are inconsistent, not
+  just poorly separated
+- **Test assertions must match biological conventions**: two tests initially had
+  the percent inhibition expectations reversed — asserting positive controls should
+  be near 100% when the formula places them near 0%. Catching this required
+  understanding both the math and the biology, not just running the tests
 
 ---
 
@@ -333,4 +396,6 @@ is rejected before any scientist acts on them.
   feature output (cell count, nucleus intensity, viability index)
 - Retry logic in the scheduler for transient instrument errors
 - Plate heatmap export as PNG alongside the QC report
+- Separate plate IDs for success and failure runs so processed outputs are not
+  overwritten between runs
 - Second assay type (cellular viability) with different normalization rules
