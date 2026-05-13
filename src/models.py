@@ -8,6 +8,8 @@ from datetime import datetime
 # Pydantic raises an error immediately rather than silently breaking downstream.
 
 class WellResult(BaseModel):
+    #WellResult is a Pydantic model. A Pydantic model: is a class, has fields, validates data, can convert itself to a dictionary
+    #WellResult(well_id="A01", row="A",..., concentration_um=0.0, signal_rfu=3857.1)
     well_id: str
     row: str
     column: int
