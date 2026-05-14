@@ -108,7 +108,6 @@ merck-bioassay-automation-sim/
 ├── tests/
 │   ├── test_qc.py        # QC formula correctness
 │   └── test_device_api.py
-│   └── test_pipeline.py
 ├── notebooks/
 │   └── explore_qc.ipynb  # plate heatmap + percent inhibition histogram
 ├── images/

@@ -75,7 +75,7 @@ class MockPlateReader:
         for _, row in plate_map.iterrows(): 
             #Well A1, then A2, then A3... create "realistic" fake numbers. 
             #.iterrows() is deterministic: It reads the CSV from top to bottom. It yields rows in that exact order.
-            #iterrows() returns two things:the row index (0, 1, 2, 3…) and the row data: (index, row)
+            #iterrows() returns two things: the row index (0, 1, 2, 3…) and the row data: (index, row)
             #_ is just a variable name. Python does NOT treat it specially.
             #But programmers use _ to mean: “I am receiving this value, but I will not use it.” It’s a signal to humans, not to Python.
             #or: for banana, row in plate_map.iterrows():

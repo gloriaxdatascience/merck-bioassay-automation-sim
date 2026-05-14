@@ -34,9 +34,13 @@ def log_event(event: dict, log_file: str = "run_log.jsonl") -> None:
     """
     path = LOG_DIR / log_file #join the folder path (data/logs) with a filename (like run_log.jsonl) to create a full address: data/logs/run_log.jsonl
     with open(path, "a") as f: #"a" stands for append. This is vital for logs because it means "add this new line to the end of the file" rather than deleting the old data and starting over.
-        f.write(json.dumps(event) + "\n") #The "s" stands for "string." This turns your data into a single line of text so it can be written into a log file.
-    logger.info(f"[{event.get('source','?')}] {event.get('event','?')} | "
-                f"plate={event.get('plate_id','?')} | status={event.get('status','?')}")
+        f.write(json.dumps(event) + "\n") #event = Python dictionary. json.dumps(event) = convert dictionary into JSON text string. + "\n" = add newline
+        #f.write(...) = write that line into the file. each event becomes one JSON line in the .jsonl file. 
+        #The "s" stands for "string." This takes the dictionary, flattens it into a single line of text, 
+        #and adds it to the bottom of one big file (run_log.jsonl). It stays as one file that just gets longer.
+    logger.info(f"[{event.get('source','?')}] {event.get('event','?')} | " #This line prints a readable summary to the terminal.
+                f"plate={event.get('plate_id','?')} | status={event.get('status','?')}") #try to get the value for key "source"; if that key is missing, use "?" instead.
+                #the ? is a safety net/a fallback safety value. It prevents crashes if a key is missing. 
 
 
 def load_json(path: str) -> dict: 

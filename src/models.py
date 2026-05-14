@@ -43,7 +43,7 @@ class QCResult(BaseModel):
 class SchedulerEvent(BaseModel):
     job_id: str
     plate_id: str
-    event: str              # e.g. read_complete, qc_passed, stored
+    event: str              # e.g. job_received, read_complete, qc_complete, plate_stored
     source: str             # device or system that emitted the event
     target: str             # next device or system
     status: str             # success | failed

@@ -51,7 +51,8 @@ def _export_genedata(df: pd.DataFrame, raw: RawPlateResult,
     This formatter produces a clean CSV matching that contract.
     In a real integration, exact column names come from the Genedata admin.
     """
-    gd = df[df["well_type"] == "compound"].copy()
+    gd = df[df["well_type"] == "compound"].copy() #selects rows and keeps only the rows where well_type is compound. 
+    #gd becomes the subset of the full table containing only test compounds, because those are the rows that should go into the Genedata-style import file.
     gd = gd.rename(columns={
         "well_id": "Well",
         "compound_id": "Compound_ID",
@@ -59,7 +60,7 @@ def _export_genedata(df: pd.DataFrame, raw: RawPlateResult,
         "signal_rfu": "Raw_Signal",
         "percent_inhibition": "Percent_Inhibition"
     })
-    gd["Plate_ID"] = raw.plate_id
+    gd["Plate_ID"] = raw.plate_id #7 added fields. creates 7 new columns.
     gd["Job_ID"] = raw.job_id
     gd["Assay_Method"] = raw.method
     gd["Z_Factor"] = qc.z_factor
@@ -72,4 +73,5 @@ def _export_genedata(df: pd.DataFrame, raw: RawPlateResult,
         "Concentration_uM", "Raw_Signal", "Percent_Inhibition",
         "Outlier", "Z_Factor", "Plate_Pass", "Assay_Method", "Timestamp"
     ]
-    gd[cols].to_csv(out_path, index=False)
+    gd[cols].to_csv(out_path, index=False) #It writes the whole table: the headers plus all row data for those columns.
+    #index=False means pandas does not write the row numbers as an extra first column. So the CSV contains all content from the selected columns.
