@@ -253,8 +253,8 @@ jupyter notebook notebooks/explore_qc.ipynb
 Run 1 uses realistic control separation (pos ~28 000 RFU, neg ~1 000 RFU). The following values are taken directly from the run log (`data/logs/run_log.jsonl`):
 
 ```
-Z'-factor:            0.92      ✓ excellent (threshold: 0.5)
-Signal/background:   26.85x       ✓ excellent (threshold: 2.0x)
+Z'-factor:            0.9361      ✓ excellent (threshold: 0.5)
+Signal/background:   26.57x       ✓ excellent (threshold: 2.0x)
 Positive control wells: 16       ✓ (columns 1–2, rows A–H)
 Negative control wells:  8       ✓ (column 12, rows A–H)
 Missing wells:        0          ✓
@@ -277,12 +277,12 @@ controls produce overlapping signals. The following values are from
 run since both runs share the same plate ID:
 
 ```
-pos_control_mean:  4 722.74 RFU  (16 wells, columns 1–2)
-pos_control_std:   2 315.24 RFU  ← very high — controls are noisy
-neg_control_mean:  3 958.10 RFU  ← nearly identical to positive controls
-neg_control_std:   1 697.36 RFU
-Z'-factor:        -14.743        ✗ failed (threshold: 0.5)
-Signal/background:  1.19x        ✗ failed (threshold: 2.0x)
+pos_control_mean:  4 744.43 RFU  (16 wells, columns 1–2)
+pos_control_std:   2 185.61 RFU  ← very high — controls are noisy
+neg_control_mean:  4 332.66 RFU  ← nearly identical to positive controls
+neg_control_std:   1 120.19 RFU
+Z'-factor:        -23.0848        ✗ failed (threshold: 0.5)
+Signal/background:  1.09x        ✗ failed (threshold: 2.0x)
 Plate verdict:      FAILED
 ```
 
@@ -293,16 +293,16 @@ From the traceability log (`data/logs/run_log.jsonl`):
   "source": "qc_module",
   "plate_id": "PLT_001",
   "status": "failed",
-  "timestamp": "2026-05-12T14:02:34.917437+00:00",
+  "timestamp": "2026-05-16T09:51:33.851378+00:00",
   "details": {
-    "z_factor": -14.743,
-    "s2b": 1.19,
+    "z_factor": -23.085,
+    "s2b": 1.1,
     "pos_control_wells": 16,
     "neg_control_wells": 8,
     "passed": false,
     "failure_reasons": [
-      "Z'-factor -14.743 below threshold 0.5",
-      "Signal-to-background 1.19 below threshold 2.0"
+      "Z'-factor -23.085 below threshold 0.5",
+      "Signal-to-background 1.10 below threshold 2.0"
     ]
   }
 }
@@ -322,13 +322,13 @@ uniformly red, with a visible gradient across compound columns. Here the plate
 is a uniform mid-range yellow-green throughout — positive and negative controls
 are indistinguishable from each other and from test compounds. The absence of
 any column-specific colour pattern is the visual signature of a collapsed assay
-window. Z' = -14.743 confirms this numerically.
+window. Z' = -23.085 confirms this numerically.
 
 ### Control separation
 ![Control separation](images/control_separation_PLT_001.png)
 
-Positive control mean: 4 722.74 RFU (SD 2 315.24). Negative control mean:
-3 958.10 RFU (SD 1 697.36). The separation between means is only 764 RFU —
+Positive control mean: 4 744.43 RFU (SD 2 185.61). Negative control mean:
+4 332.66 RFU (SD 1 120.19). The separation between means is only 412 RFU —
 less than one standard deviation of either population. The two distributions
 overlap completely, making it impossible to use them as normalization references.
 A scientist seeing this plot would immediately investigate whether the wrong
@@ -339,9 +339,9 @@ addition, or whether the assay incubation was interrupted.
 ![Inhibition histogram](images/inhibition_histogram_PLT_001.png)
 
 Percent inhibition values for test compounds are scattered far outside the
-expected 0–100% range, with values running from approximately -210% to
+expected 0–100% range, with values running from approximately -830% to
 positive outliers. This happens because the normalization denominator
-(mean_pos − mean_neg = 764 RFU) is nearly zero relative to the signal noise,
+(mean_pos − mean_neg = 412 RFU) is nearly zero relative to the signal noise,
 so small differences in raw signal produce enormous swings in calculated
 inhibition. These compound results are meaningless — which is precisely why
 the QC step exists and why this plate is rejected before any scientist acts
@@ -377,9 +377,9 @@ and resolving the root cause.
   worrying about business logic made debugging immediate and audit trails automatic.
   The run log is the first place to look when something fails — it shows exactly
   which step emitted a failure and what the values were at that moment
-- **Z'-factor in practice**: a Z' of -14.7 does not mean the data is slightly
+- **Z'-factor in practice**: a Z' of -23.085 does not mean the data is slightly
   unreliable — it means the assay window has completely collapsed and no compound
-  result on that plate can be trusted. The high standard deviations (2 315 RFU on
+  result on that plate can be trusted. The high standard deviations (2 185.61 RFU on
   positive controls) tell the story: the controls themselves are inconsistent, not
   just poorly separated
 - **Test assertions must match biological conventions**: two tests initially had
